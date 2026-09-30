@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Volt Corp: Energy &amp; Stock Empire</title>
+<meta name="description" content="Build a battery-storage company, take it public, and out-trade your rival. A browser game.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0e1828;
+    --panel: #14233a;
+    --raise: #1b3050;
+    --line: #2a4266;
+    --text: #e8eef7;
+    --muted: #93a6c2;
+    --amber: #f4b942;
+    --amber-ink: #2a1c00;
+    --up: #5fd3b0;
+    --down: #ff7a70;
+    --display: "Bricolage Grotesque", "Trebuchet MS", system-ui, sans-serif;
+    --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html { background: var(--ink); }
+  body {
+    margin: 0;
+    background: var(--ink);
+    color: var(--text);
+    font-family: var(--body);
+    font-size: 15px;
+    line-height: 1.5;
+    font-variant-numeric: tabular-nums;
+    -webkit-text-size-adjust: 100%;
+  }
+  h1, h2, h3 { font-family: var(--display); margin: 0; line-height: 1.1; }
+  button { font: inherit; color: inherit; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 20px 20px 48px; }
+
+  /* Top bar */
+  .topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  .brand { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+  .brand h1 { font-size: 1.35rem; font-weight: 800; }
+  .day { color: var(--muted); font-size: .95rem; }
+  .advance { display: flex; gap: 8px; }
+
+  /* Buttons */
+  .btn {
+    background: var(--raise);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 8px 14px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background .12s, border-color .12s;
+  }
+  .btn:hover:not(:disabled) { background: #24406a; border-color: #3d5c8c; }
+  .btn.primary { background: var(--amber); border-color: var(--amber); color: var(--amber-ink); font-weight: 600; }
+  .btn.primary:hover:not(:disabled) { background: #ffca5c; border-color: #ffca5c; }
+  .btn.small { padding: 5px 10px; font-size: .88rem; }
+  .btn:disabled { opacity: .4; cursor: not-allowed; }
+  :focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+
+  /* Net worth */
+  .worth { margin: 28px 0 8px; }
+  .worth .label { color: var(--muted); font-size: .95rem; }
+  .worth .big {
+    font-family: var(--display);
+    font-weight: 800;
+    font-size: clamp(2.6rem, 8vw, 5rem);
+    letter-spacing: -.02em;
+    line-height: 1;
+    margin: 4px 0 2px;
+  }
+  .worth .delta { font-size: .95rem; }
+  .chart { width: 100%; height: 96px; display: block; margin-top: 10px; }
+  .strip { display: flex; flex-wrap: wrap; gap: 8px 36px; margin: 6px 0 28px; padding-top: 14px; border-top: 1px solid var(--line); }
+  .strip div span { display: block; color: var(--muted); font-size: .85rem; }
+  .strip div b { font-family: var(--display); font-size: 1.25rem; font-weight: 600; }
+
+  .up { color: var(--up); }
+  .down { color: var(--down); }
+  .muted { color: var(--muted); }
+
+  /* Layout */
+  .cols { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: 32px; align-items: start; }
+  @media (max-width: 900px) { .cols { grid-template-columns: minmax(0, 1fr); gap: 36px; } }
+  section h2 { font-size: 1.3rem; font-weight: 600; margin-bottom: 12px; }
+
+  /* Market */
+  .qty { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+  .qty label { color: var(--muted); }
+  .qty input {
+    width: 96px; padding: 7px 10px; border-radius: 8px;
+    background: var(--panel); border: 1px solid var(--line); color: var(--text); font: inherit;
+  }
+  .chip { background: transparent; border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; cursor: pointer; color: var(--muted); }
+  .chip:hover { color: var(--text); border-color: #3d5c8c; }
+  .chip.on { background: var(--raise); color: var(--text); border-color: #3d5c8c; }
+  .scroll { overflow-x: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; min-width: 640px; }
+  th { text-align: right; font-weight: 500; color: var(--muted); font-size: .85rem; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+  td { text-align: right; padding: 12px; border-bottom: 1px solid #1f3352; white-space: nowrap; }
+  th:first-child, td:first-child { text-align: left; }
+  tr:last-child td { border-bottom: 0; }
+  .tk { font-family: var(--display); font-weight: 600; font-size: 1.05rem; }
+  .tk small { display: block; font-family: var(--body); font-weight: 400; color: var(--muted); font-size: .78rem; }
+  .px small { display: block; font-size: .8rem; }
+  td.trade { display: flex; gap: 6px; justify-content: flex-end; }
+  .spark { width: 84px; height: 26px; display: block; margin-left: auto; }
+  .totals { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 12px; border-top: 1px solid var(--line); background: var(--raise); border-radius: 0 0 12px 12px; font-size: .95rem; }
+  .totals b { font-family: var(--display); font-weight: 600; }
+
+  /* Company */
+  dl.facts { margin: 0 0 8px; display: grid; grid-template-columns: 1fr auto; gap: 6px 16px; }
+  dl.facts dt { color: var(--muted); }
+  dl.facts dd { margin: 0; text-align: right; font-weight: 500; }
+  .actions { list-style: none; margin: 14px 0 0; padding: 0; }
+  .actions li { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; align-items: center; padding: 14px 0; border-top: 1px solid var(--line); }
+  .actions h3 { font-size: 1rem; font-weight: 600; }
+  .actions p { margin: 2px 0 0; color: var(--muted); font-size: .88rem; }
+  .actions .btn { min-width: 108px; }
+
+  .rival { margin-top: 28px; }
+  .bar { height: 8px; background: var(--raise); border-radius: 999px; overflow: hidden; margin: 8px 0 6px; }
+  .bar i { display: block; height: 100%; background: var(--down); }
+
+  /* Log and footer */
+  .log { margin-top: 36px; }
+  .log ol { list-style: none; margin: 0; padding: 0; max-height: 260px; overflow-y: auto; border-top: 1px solid var(--line); }
+  .log li { padding: 8px 0; border-bottom: 1px solid #1f3352; display: grid; grid-template-columns: 64px 1fr; gap: 8px; font-size: .92rem; }
+  .log li .d { color: var(--muted); }
+  .log li.event { color: var(--amber); }
+  .log li.bad { color: var(--down); }
+  .foot { margin-top: 32px; padding-top: 18px; border-top: 1px solid var(--line); display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .foot .spacer { flex: 1; }
+  .foot p { margin: 0; color: var(--muted); font-size: .85rem; }
+
+  /* Toast */
+  #toast {
+    position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%) translateY(20px);
+    background: var(--raise); border: 1px solid var(--line); border-radius: 10px;
+    padding: 10px 16px; max-width: calc(100% - 32px); opacity: 0; pointer-events: none;
+    transition: opacity .18s, transform .18s; z-index: 30;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  #toast.err { border-color: var(--down); }
+
+  /* Dialog */
+  dialog {
+    background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 14px;
+    padding: 0; width: min(520px, calc(100% - 32px));
+  }
+  dialog::backdrop { background: rgba(5, 10, 20, .7); }
+  .dlg-in { padding: 22px; }
+  .dlg-in h2 { font-size: 1.4rem; margin-bottom: 10px; }
+  .dlg-in p { margin: 0 0 12px; color: var(--muted); }
+  .dlg-in textarea {
+    width: 100%; min-height: 130px; resize: vertical; padding: 10px; border-radius: 8px;
+    background: var(--ink); border: 1px solid var(--line); color: var(--text);
+    font: 13px/1.4 ui-monospace, Menlo, Consolas, monospace; word-break: break-all;
+  }
+  .dlg-err { color: var(--down); min-height: 1.4em; margin: 6px 0 0; font-size: .9rem; }
+  .dlg-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="topbar">
+    <div class="brand">
+      <h1>Volt Corp</h1>
+      <span class="day" id="day"></span>
+    </div>
+    <div class="advance">
+      <button class="btn" data-act="advance5">Advance 5 days</button>
+      <button class="btn primary" data-act="advance">Advance 1 day</button>
+    </div>
+  </header>
+
+  <div class="worth">
+    <div class="label">Net worth</div>
+    <div class="big" id="networth"></div>
+    <div class="delta" id="networthDelta"></div>
+    <svg class="chart" id="worthChart" viewBox="0 0 600 96" preserveAspectRatio="none" aria-hidden="true"></svg>
+  </div>
+
+  <div class="strip" id="strip"></div>
+
+  <div class="cols">
+    <section aria-labelledby="mk">
+      <h2 id="mk">Market</h2>
+      <div class="qty">
+        <label for="qty">Shares per trade</label>
+        <input id="qty" type="number" min="1" step="1" value="10" inputmode="numeric">
+        <button class="chip" data-act="chip" data-q="1">1</button>
+        <button class="chip on" data-act="chip" data-q="10">10</button>
+        <button class="chip" data-act="chip" data-q="100">100</button>
+        <button class="chip" data-act="chip" data-q="1000">1,000</button>
+      </div>
+      <div class="scroll">
+        <table>
+          <thead>
+            <tr><th>Ticker</th><th>Price</th><th>Last 40 days</th><th>Owned</th><th>Avg cost</th><th>Profit / loss</th><th>Trade</th></tr>
+          </thead>
+          <tbody id="market"></tbody>
+        </table>
+        <div class="totals" id="totals"></div>
+      </div>
+    </section>
+
+    <section aria-labelledby="co">
+      <h2 id="co">Your company</h2>
+      <dl class="facts" id="facts"></dl>
+      <ul class="actions" id="actions"></ul>
+
+      <div class="rival" id="rival"></div>
+    </section>
+  </div>
+
+  <section class="log" aria-labelledby="lg">
+    <h2 id="lg">Activity</h2>
+    <ol id="log"></ol>
+  </section>
+
+  <footer class="foot">
+    <button class="btn" data-act="export">Export save code</button>
+    <button class="btn" data-act="import">Load save code</button>
+    <span class="spacer"></span>
+    <p>Progress saves automatically in this browser.</p>
+    <button class="btn" data-act="newgame">New game</button>
+  </footer>
+</div>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<dialog id="dlg">
+  <div class="dlg-in">
+    <h2 id="dlgTitle"></h2>
+    <div id="dlgBody"></div>
+    <div class="dlg-err" id="dlgErr"></div>
+    <div class="dlg-actions" id="dlgActions"></div>
+  </div>
+</dialog>
+
+<script>
+(() => {
+  "use strict";
+
+  const STORE_KEY = "voltcorp.save.v2";
+  const CODE_PREFIX = "V2.";
+  const SECTOR_NAMES = { TECH: "Technology", ENERGY: "Energy", AI: "Artificial intelligence", PHARMA: "Pharmaceuticals", VOLT: "Volt Corp" };
+
+  const EVENTS = [
+    ["AI Breakthrough", { AI: 1.25, TECH: 1.10 }],
+    ["Energy Crisis", { ENERGY: 1.35, VOLT: 1.20 }],
+    ["Recession Fears", { TECH: 0.85, AI: 0.80, VOLT: 0.85, ENERGY: 0.95 }],
+    ["Grid Subsidy Influx", { ENERGY: 1.20, VOLT: 1.30 }],
+    ["Market Crash", { TECH: 0.75, AI: 0.70, ENERGY: 0.85, PHARMA: 0.90, VOLT: 0.70 }],
+    ["Bull Market", { TECH: 1.15, AI: 1.15, ENERGY: 1.10, PHARMA: 1.10, VOLT: 1.15 }]
+  ];
+
+  function freshState() {
+    const mk = (price, owned, volatility) => ({ price, owned, avg_cost: 0, volatility, prev: price, hist: price ? [price] : [] });
+    const s = {
+      cash: 100000, turn: 1, is_public: false,
+      company: { name: "VOLT CORP", employees: 2, battery_sites: 1, tech_level: 1, efficiency: 1.0, rd_cost: 15000, site_cost: 25000, employee_salary: 500 },
+      competitor: { name: "NEXUS GRID", valuation: 200000, market_share: 0.40 },
+      stocks: {
+        TECH: mk(120, 0, 0.15), ENERGY: mk(80, 0, 0.05), AI: mk(150, 0, 0.12),
+        PHARMA: mk(90, 0, 0.06), VOLT: mk(0, 10000, 0.18)
+      },
+      netHist: [], log: []
+    };
+    s.netHist.push(netWorth(s));
+    addLog(s, "Volt Corp is founded with $100,000 in cash. Build sites, trade stocks, and take the company public.");
+    return s;
+  }
+
+  let state = null;
+  let gameOver = false;
+
+  /* ---------- helpers ---------- */
+  const $ = (id) => document.getElementById(id);
+  const rand = (a, b) => a + Math.random() * (b - a);
+  const r2 = (n) => Math.round(n * 100) / 100;
+  const num = (n, d = 2) => n.toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d });
+  const money = (n) => (n < 0 ? "-" : "") + "$" + num(Math.abs(n));
+  const signed = (n) => (n < 0 ? "-" : "+") + "$" + num(Math.abs(n));
+  const pct = (n) => (n < 0 ? "-" : "+") + Math.abs(n * 100).toFixed(1) + "%";
+  const cls = (n) => (n < 0 ? "down" : n > 0 ? "up" : "muted");
+
+  function addLog(s, text, kind = "") {
+    s.log.unshift({ d: s.turn, text, kind });
+    if (s.log.length > 60) s.log.length = 60;
+  }
+
+  function valuation(s) {
+    const c = s.company;
+    const assets = c.battery_sites * 30000 + c.tech_level * 20000;
+    const revenuePotential = c.employees * 1200 * c.efficiency;
+    return Math.max(50000, assets + revenuePotential + s.cash * 0.5);
+  }
+
+  function netWorth(s) {
+    let total = s.cash;
+    for (const [t, d] of Object.entries(s.stocks)) {
+      if (t === "VOLT" && !s.is_public) continue;
+      total += d.owned * d.price;
+    }
+    return total;
+  }
+
+  function dailyRevenue(s) {
+    const c = s.company;
+    return (c.battery_sites * 3500 + c.employees * 800) * c.efficiency;
+  }
+  function dailyPayroll(s) { return s.company.employees * s.company.employee_salary; }
+
+  /* ---------- persistence ---------- */
+  function persist() {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) { /* storage may be unavailable */ }
+  }
+
+  function normalize(raw) {
+    const s = raw;
+    const needed = ["cash", "turn", "is_public", "company", "competitor", "stocks"];
+    for (const k of needed) if (!(k in s)) throw new Error("Missing " + k);
+    for (const t of ["TECH", "ENERGY", "AI", "PHARMA", "VOLT"]) {
+      const d = s.stocks[t];
+      if (!d || typeof d.price !== "number") throw new Error("Bad stock " + t);
+      if (typeof d.prev !== "number") d.prev = d.price;
+      if (!Array.isArray(d.hist)) d.hist = d.price ? [d.price] : [];
+    }
+    if (!Array.isArray(s.netHist) || !s.netHist.length) s.netHist = [netWorth(s)];
+    if (!Array.isArray(s.log)) s.log = [];
+    return s;
+  }
+
+  function loadAuto() {
+    try {
+      const raw = localStorage.getItem(STORE_KEY);
+      if (!raw) return null;
+      return normalize(JSON.parse(raw));
+    } catch (e) { return null; }
+  }
+
+  function makeCode() {
+    const json = JSON.stringify(state);
+    return CODE_PREFIX + btoa(unescape(encodeURIComponent(json)));
+  }
+
+  async function parseCode(input) {
+    const code = input.trim();
+    if (!code) throw new Error("Paste a save code first.");
+    if (code.startsWith(CODE_PREFIX)) {
+      const json = decodeURIComponent(escape(atob(code.slice(CODE_PREFIX.length))));
+      return normalize(JSON.parse(json));
+    }
+    // Save codes from the original Python version: base64 of zlib-compressed JSON.
+    if (typeof DecompressionStream === "undefined") throw new Error("This browser can't read old Python save codes.");
+    const bytes = Uint8Array.from(atob(code), (c) => c.charCodeAt(0));
+    const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("deflate"));
+    const text = await new Response(stream).text();
+    return normalize(JSON.parse(text));
+  }
+
+  /* ---------- rendering ---------- */
+  function sparkline(values, w, h) {
+    if (values.length < 2) return `<svg class="spark" viewBox="0 0 ${w} ${h}" aria-hidden="true"></svg>`;
+    const min = Math.min(...values), max = Math.max(...values), span = max - min || 1;
+    const pts = values.map((v, i) => `${(i / (values.length - 1) * w).toFixed(1)},${(h - 3 - (v - min) / span * (h - 6)).toFixed(1)}`).join(" ");
+    const color = values[values.length - 1] >= values[0] ? "var(--up)" : "var(--down)";
+    return `<svg class="spark" viewBox="0 0 ${w} ${h}" aria-hidden="true"><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
+  }
+
+  function renderWorthChart() {
+    const v = state.netHist.slice(-120);
+    const svg = $("worthChart");
+    if (v.length < 2) {
+      svg.innerHTML = `<line x1="0" y1="72" x2="600" y2="72" stroke="var(--line)" stroke-width="1.5" vector-effect="non-scaling-stroke"/>`;
+      return;
+    }
+    const min = Math.min(...v), max = Math.max(...v), span = max - min || 1;
+    const pts = v.map((n, i) => `${(i / (v.length - 1) * 600).toFixed(1)},${(88 - (n - min) / span * 76).toFixed(1)}`);
+    svg.innerHTML =
+      `<polygon points="0,96 ${pts.join(" ")} 600,96" fill="var(--amber)" opacity=".12"/>` +
+      `<polyline points="${pts.join(" ")}" fill="none" stroke="var(--amber)" stroke-width="2.5" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>`;
+  }
+
+  function render() {
+    const s = state, c = s.company;
+    const nw = netWorth(s);
+    const hist = s.netHist;
+    const prevNw = hist.length > 1 ? hist[hist.length - 2] : nw;
+    const diff = nw - prevNw;
+
+    $("day").textContent = `Day ${s.turn}`;
+    $("networth").textContent = money(nw);
+    $("networthDelta").innerHTML = hist.length > 1
+      ? `<span class="${cls(diff)}">${signed(diff)} since yesterday</span>`
+      : `<span class="muted">Advance a day to see how your net worth moves.</span>`;
+    renderWorthChart();
+
+    $("strip").innerHTML = `
+      <div><span>Cash</span><b>${money(s.cash)}</b></div>
+      <div><span>Company valuation</span><b>${money(valuation(s))}</b></div>
+      <div><span>Daily profit (est.)</span><b class="${cls(dailyRevenue(s) - dailyPayroll(s))}">${signed(dailyRevenue(s) - dailyPayroll(s))}</b></div>
+      <div><span>${competitorLabel()}</span><b>${(s.competitor.market_share * 100).toFixed(1)}% market share</b></div>`;
+
+    // Market table
+    let rows = "";
+    for (const [t, d] of Object.entries(s.stocks)) {
+      if (t === "VOLT" && !s.is_public) continue;
+      const chg = d.prev ? d.price / d.prev - 1 : 0;
+      const hasCost = d.avg_cost > 0 && d.owned > 0;
+      const pnl = hasCost ? d.owned * (d.price - d.avg_cost) : null;
+      const pnlPct = hasCost ? d.price / d.avg_cost - 1 : 0;
+      rows += `<tr>
+        <td class="tk">${t}<small>${SECTOR_NAMES[t]}</small></td>
+        <td class="px">${money(d.price)}<small class="${cls(chg)}">${pct(chg)}</small></td>
+        <td>${sparkline(d.hist.slice(-40), 84, 26)}</td>
+        <td>${d.owned.toLocaleString("en-US")}</td>
+        <td>${hasCost ? money(d.avg_cost) : '<span class="muted">n/a</span>'}</td>
+        <td>${pnl === null ? '<span class="muted">n/a</span>' : `<span class="${cls(pnl)}">${signed(pnl)}<small style="display:block">${pct(pnlPct)}</small></span>`}</td>
+        <td class="trade">
+          <button class="btn small primary" data-act="buy" data-t="${t}">Buy</button>
+          <button class="btn small" data-act="sell" data-t="${t}" ${d.owned <= 0 ? "disabled" : ""}>Sell</button>
+        </td>
+      </tr>`;
+    }
+    $("market").innerHTML = rows;
+    $("totals").innerHTML = `<span>Cash <b>${money(s.cash)}</b></span><span>Total assets <b>${money(nw)}</b></span>`;
+
+    // Company facts
+    $("facts").innerHTML = `
+      <dt>Battery sites</dt><dd>${c.battery_sites}</dd>
+      <dt>Employees</dt><dd>${c.employees}</dd>
+      <dt>Tech level</dt><dd>Level ${c.tech_level} (${c.efficiency.toFixed(2)}x output)</dd>
+      <dt>Daily revenue</dt><dd>${money(dailyRevenue(s))}</dd>
+      <dt>Daily payroll</dt><dd>${money(dailyPayroll(s))}</dd>
+      <dt>Stock status</dt><dd>${s.is_public ? "Public (VOLT)" : "Private"}</dd>`;
+
+    // Actions
+    const ipoRow = s.is_public
+      ? `<li><div><h3>Company is public</h3><p>VOLT trades on the market. Its price follows your valuation.</p></div></li>`
+      : `<li><div><h3>Take the company public</h3><p>Sell shares to the market for a cash injection.</p></div>
+           <button class="btn" data-act="ipo">Start IPO</button></li>`;
+    $("actions").innerHTML = `
+      <li><div><h3>Build a battery site</h3><p>Adds ${money(3500 * c.efficiency)} revenue per day. Each site costs 25% more than the last.</p></div>
+        <button class="btn primary" data-act="build" ${s.cash < c.site_cost ? "disabled" : ""}>${money(c.site_cost)}</button></li>
+      <li><div><h3>Hire a grid specialist</h3><p>Adds ${money(800 * c.efficiency)} revenue per day for ${money(c.employee_salary)} in daily payroll.</p></div>
+        <button class="btn primary" data-act="hire">Hire</button></li>
+      <li><div><h3>Fund R&amp;D</h3><p>Raises output of every site and specialist by 0.15x. Cost rises 50% each time.</p></div>
+        <button class="btn primary" data-act="rd" ${s.cash < c.rd_cost ? "disabled" : ""}>${money(c.rd_cost)}</button></li>
+      ${ipoRow}`;
+
+    // Rival
+    const k = s.competitor;
+    $("rival").innerHTML = `
+      <h2>${competitorLabel()}</h2>
+      <div class="muted">Rival valuation ${money(k.valuation)}</div>
+      <div class="bar" role="img" aria-label="Rival market share ${(k.market_share * 100).toFixed(1)} percent"><i style="width:${Math.min(100, k.market_share * 100)}%"></i></div>
+      <div class="muted">${(k.market_share * 100).toFixed(1)}% of the market (caps at 80%)</div>`;
+
+    // Log
+    $("log").innerHTML = s.log.map((l) => `<li class="${l.kind}"><span class="d">Day ${l.d}</span><span>${l.text}</span></li>`).join("");
+  }
+
+  function competitorLabel() {
+    const n = state.competitor.name.toLowerCase();
+    return n.replace(/\b\w/g, (m) => m.toUpperCase());
+  }
+
+  /* ---------- feedback ---------- */
+  let toastTimer;
+  function toast(msg, isErr = false) {
+    const el = $("toast");
+    el.textContent = msg;
+    el.className = "show" + (isErr ? " err" : "");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { el.className = ""; }, 3200);
+  }
+
+  function showDialog(title, bodyHTML, buttons, opts = {}) {
+    const dlg = $("dlg");
+    $("dlgTitle").textContent = title;
+    $("dlgBody").innerHTML = bodyHTML;
+    $("dlgErr").textContent = "";
+    const box = $("dlgActions");
+    box.innerHTML = "";
+    for (const b of buttons) {
+      const el = document.createElement("button");
+      el.className = "btn" + (b.primary ? " primary" : "");
+      el.textContent = b.label;
+      el.addEventListener("click", () => {
+        if (!b.keepOpen) dlg.close();
+        if (b.onClick) b.onClick();
+      });
+      box.appendChild(el);
+    }
+    dlg.dataset.locked = opts.locked ? "1" : "";
+    if (!dlg.open) dlg.showModal();
+  }
+  $("dlg").addEventListener("cancel", (e) => { if ($("dlg").dataset.locked) e.preventDefault(); });
+
+  /* ---------- game actions ---------- */
+  function trade(side, ticker) {
+    const s = state, d = s.stocks[ticker];
+    const qty = Number($("qty").value);
+    if (!Number.isInteger(qty) || qty <= 0) return toast("Enter a whole number of shares greater than 0.", true);
+
+    if (side === "buy") {
+      const cost = r2(qty * d.price);
+      if (cost > s.cash) return toast(`Not enough cash: ${qty} ${ticker} costs ${money(cost)}.`, true);
+      s.cash = r2(s.cash - cost);
+      const total = d.owned + qty;
+      d.avg_cost = r2((d.owned * d.avg_cost + qty * d.price) / total);
+      d.owned = total;
+      addLog(s, `Bought ${qty.toLocaleString("en-US")} ${ticker} at ${money(d.price)}.`);
+      toast(`Bought ${qty.toLocaleString("en-US")} ${ticker}.`);
+    } else {
+      if (qty > d.owned) return toast(`You only own ${d.owned.toLocaleString("en-US")} ${ticker}.`, true);
+      s.cash = r2(s.cash + qty * d.price);
+      d.owned -= qty;
+      if (d.owned === 0) d.avg_cost = 0;
+      addLog(s, `Sold ${qty.toLocaleString("en-US")} ${ticker} at ${money(d.price)}.`);
+      toast(`Sold ${qty.toLocaleString("en-US")} ${ticker}.`);
+    }
+    afterAction();
+  }
+
+  function build() {
+    const s = state, c = s.company;
+    if (s.cash < c.site_cost) return toast("Not enough cash to build a site.", true);
+    s.cash = r2(s.cash - c.site_cost);
+    c.battery_sites += 1;
+    addLog(s, `Built battery site #${c.battery_sites} for ${money(c.site_cost)}.`);
+    c.site_cost = Math.floor(c.site_cost * 1.25);
+    toast("Battery site built.");
+    afterAction();
+  }
+
+  function hire() {
+    const c = state.company;
+    c.employees += 1;
+    addLog(state, `Hired a grid specialist. Team size: ${c.employees}.`);
+    toast("Grid specialist hired.");
+    afterAction();
+  }
+
+  function fundRD() {
+    const s = state, c = s.company;
+    if (s.cash < c.rd_cost) return toast("Not enough cash to fund R&D.", true);
+    s.cash = r2(s.cash - c.rd_cost);
+    c.tech_level += 1;
+    c.efficiency = r2(c.efficiency + 0.15);
+    addLog(s, `R&D funded for ${money(c.rd_cost)}. Tech level ${c.tech_level}, output ${c.efficiency.toFixed(2)}x.`);
+    c.rd_cost = Math.floor(c.rd_cost * 1.5);
+    toast("Processing optimized.");
+    afterAction();
+  }
+
+  function ipo() {
+    const s = state;
+    if (s.is_public) return;
+    const val = valuation(s);
+    const price = r2(val / 20000);
+    const raise = price * 8000;
+    showDialog(
+      "Take Volt Corp public?",
+      `<p>Your company is appraised at <b style="color:var(--text)">${money(val)}</b>. Shares open at <b style="color:var(--text)">${money(price)}</b>.</p>
+       <p>You float 40% of the company. You raise ${money(raise)} in cash and keep 12,000 VOLT shares. After listing, the VOLT price follows your valuation and moves with the market.</p>`,
+      [
+        { label: "Cancel" },
+        { label: "List on the market", primary: true, onClick: () => {
+            s.is_public = true;
+            const v = s.stocks.VOLT;
+            v.price = price; v.prev = price; v.hist = [price];
+            v.owned = 12000; v.avg_cost = 0;
+            s.cash = r2(s.cash + raise);
+            addLog(s, `IPO complete. VOLT opens at ${money(price)} and raises ${money(raise)}.`, "event");
+            toast(`IPO complete: raised ${money(raise)}.`);
+            afterAction();
+        } }
+      ]
+    );
+  }
+
+  function advanceOneDay() {
+    const s = state, c = s.company;
+    const gross = dailyRevenue(s), pay = dailyPayroll(s);
+    s.cash = r2(s.cash + gross - pay);
+    addLog(s, `Day closed. Revenue ${signed(gross)}, payroll ${signed(-pay)}.`);
+
+    const k = s.competitor;
+    k.valuation = r2(k.valuation * rand(0.93, 1.10));
+    if (Math.random() < 0.3) k.market_share = Math.min(0.80, r2(k.market_share + 0.02));
+
+    for (const [t, d] of Object.entries(s.stocks)) {
+      if (t === "VOLT" && !s.is_public) continue;
+      d.prev = d.price;
+      d.price *= 1 + rand(-d.volatility, d.volatility);
+      if (d.price < 1) d.price = 1;
+    }
+
+    if (s.is_public) {
+      const target = valuation(s) / 20000;
+      s.stocks.VOLT.price = Math.max(1, s.stocks.VOLT.price * 0.6 + target * 0.4);
+    }
+
+    if (Math.random() < 0.25) {
+      const [name, effects] = EVENTS[Math.floor(Math.random() * EVENTS.length)];
+      const bad = Object.values(effects).reduce((a, b) => a + b, 0) / Object.keys(effects).length < 1;
+      addLog(s, `Market news: ${name}.`, bad ? "bad" : "event");
+      toast(`Market news: ${name}`);
+      for (const [sector, mult] of Object.entries(effects)) {
+        if (sector === "VOLT" && !s.is_public) continue;
+        s.stocks[sector].price *= mult;
+      }
+    }
+
+    for (const [t, d] of Object.entries(s.stocks)) {
+      d.price = r2(d.price);
+      if (t === "VOLT" && !s.is_public) continue;
+      d.hist.push(d.price);
+      if (d.hist.length > 40) d.hist.shift();
+    }
+
+    s.turn += 1;
+    s.netHist.push(netWorth(s));
+    if (s.netHist.length > 240) s.netHist.shift();
+  }
+
+  function isBankrupt() { return state.cash < 0 && netWorth(state) <= 0; }
+
+  function advance(days) {
+    for (let i = 0; i < days; i++) {
+      advanceOneDay();
+      if (isBankrupt()) { endGame(); return; }
+    }
+    afterAction();
+  }
+
+  function endGame() {
+    gameOver = true;
+    try { localStorage.removeItem(STORE_KEY); } catch (e) {}
+    render();
+    showDialog(
+      "Bankruptcy",
+      `<p>Volt Corp ran out of cash and assets on day ${state.turn}. The company is being liquidated.</p>`,
+      [{ label: "Start a new game", primary: true, onClick: newGame }],
+      { locked: true }
+    );
+  }
+
+  function afterAction() {
+    persist();
+    render();
+  }
+
+  function newGame() {
+    gameOver = false;
+    state = freshState();
+    persist();
+    render();
+  }
+
+  function exportCode() {
+    const code = makeCode();
+    showDialog(
+      "Your save code",
+      `<p>Copy this code and keep it somewhere safe. Use Load save code to restore it later, on any device.</p>
+       <textarea id="codeOut" readonly></textarea>`,
+      [
+        { label: "Close" },
+        { label: "Copy code", primary: true, keepOpen: true, onClick: async () => {
+            try { await navigator.clipboard.writeText(code); $("dlgErr").textContent = ""; toast("Save code copied."); }
+            catch (e) { $("codeOut").select(); $("dlgErr").textContent = "Copy failed. The code is selected, so press Ctrl+C or Cmd+C."; }
+        } }
+      ]
+    );
+    $("codeOut").value = code;
+  }
+
+  function importCode() {
+    showDialog(
+      "Load a save code",
+      `<p>Paste a code from this game or from the original Python version. Loading replaces your current game.</p>
+       <textarea id="codeIn" placeholder="Paste save code here"></textarea>`,
+      [
+        { label: "Cancel" },
+        { label: "Load game", primary: true, keepOpen: true, onClick: async () => {
+            try {
+              const loaded = await parseCode($("codeIn").value);
+              state = loaded;
+              gameOver = false;
+              $("dlg").close();
+              addLog(state, "Save code loaded.");
+              afterAction();
+              toast("Save loaded.");
+            } catch (e) {
+              $("dlgErr").textContent = "That code couldn't be read. Check that you copied all of it.";
+            }
+        } }
+      ]
+    );
+  }
+
+  function confirmNewGame() {
+    showDialog(
+      "Start a new game?",
+      `<p>This erases your current progress. Export a save code first if you want to keep it.</p>`,
+      [{ label: "Keep playing" }, { label: "Start new game", primary: true, onClick: newGame }]
+    );
+  }
+
+  /* ---------- events ---------- */
+  document.addEventListener("click", (e) => {
+    const el = e.target.closest("[data-act]");
+    if (!el || gameOver) return;
+    const act = el.dataset.act;
+    switch (act) {
+      case "buy": case "sell": trade(act, el.dataset.t); break;
+      case "build": build(); break;
+      case "hire": hire(); break;
+      case "rd": fundRD(); break;
+      case "ipo": ipo(); break;
+      case "advance": advance(1); break;
+      case "advance5": advance(5); break;
+      case "export": exportCode(); break;
+      case "import": importCode(); break;
+      case "newgame": confirmNewGame(); break;
+      case "chip":
+        $("qty").value = el.dataset.q;
+        syncChips();
+        break;
+    }
+  });
+
+  function syncChips() {
+    const v = $("qty").value;
+    document.querySelectorAll(".chip").forEach((c) => c.classList.toggle("on", c.dataset.q === v));
+  }
+  $("qty").addEventListener("input", syncChips);
+
+  /* ---------- start ---------- */
+  state = loadAuto() || freshState();
+  render();
+})();
+</script>
+</body>
+</html>
